@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Card, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { getTemplates } from "@/lib/queries";
 import { StartWorkoutButton } from "./start-workout-button";
 

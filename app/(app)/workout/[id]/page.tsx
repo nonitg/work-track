@@ -51,7 +51,8 @@ export default async function WorkoutPage({ params }: { params: Promise<{ id: st
       target_sets: it.target_sets,
       target_reps_min: it.target_reps_min,
       target_reps_max: it.target_reps_max,
-      exercise: ex ? { id: ex.id, name: ex.name } : null,
+      notes: it.notes ?? null,
+      exercise: ex ? { id: ex.id, name: ex.name, category: ex.category } : null,
     };
   });
 
@@ -61,6 +62,7 @@ export default async function WorkoutPage({ params }: { params: Promise<{ id: st
       id: s.id,
       exercise_id: s.exercise_id,
       exercise_name: ex?.name ?? "Exercise",
+      exercise_category: ex?.category ?? "",
       set_number: s.set_number,
       weight_kg: s.weight_kg != null ? Number(s.weight_kg) : null,
       reps: s.reps,
@@ -72,6 +74,8 @@ export default async function WorkoutPage({ params }: { params: Promise<{ id: st
       workoutId={id}
       date={workout.date}
       templateName={tpl?.name ?? null}
+      warmup={tpl?.warmup ?? null}
+      warmupDone={!!workout.warmup_done}
       items={itemsForUi}
       sets={setsForUi}
       previous={previous}

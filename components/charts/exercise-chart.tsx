@@ -1,5 +1,6 @@
 "use client";
-import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { CHART_COLORS, ChartTooltip, chartAxis, chartGrid } from "./chart-style";
 
 export type ExercisePoint = { date: string; e1rm: number | null; topSet: number | null };
 
@@ -10,16 +11,43 @@ export function ExerciseChart({ data }: { data: ExercisePoint[] }) {
   return (
     <div className="h-64 w-full">
       <ResponsiveContainer>
-        <LineChart data={data} margin={{ top: 10, right: 8, left: -16, bottom: 0 }}>
-          <CartesianGrid stroke="#e4e4e7" strokeDasharray="3 3" vertical={false} />
-          <XAxis dataKey="date" tick={{ fontSize: 11 }} stroke="#a1a1aa" tickLine={false} axisLine={false} />
-          <YAxis tick={{ fontSize: 11 }} stroke="#a1a1aa" tickLine={false} axisLine={false} />
-          <Tooltip
-            contentStyle={{ borderRadius: 8, border: "1px solid #e4e4e7", fontSize: 12 }}
-            formatter={(v, n) => [`${typeof v === "number" ? v.toFixed(1) : v} kg`, n === "e1rm" ? "e1RM" : "Top set"]}
+        <LineChart data={data} margin={{ top: 8, right: 12, left: -16, bottom: 0 }}>
+          {chartGrid()}
+          <XAxis
+            dataKey="date"
+            tickFormatter={(v: string) => v.slice(5).replace("-", "/")}
+            interval="preserveStartEnd"
+            minTickGap={20}
+            {...chartAxis()}
           />
-          <Line type="monotone" dataKey="topSet" stroke="#a1a1aa" strokeWidth={1.5} dot={{ r: 2 }} connectNulls />
-          <Line type="monotone" dataKey="e1rm" stroke="#0ea5e9" strokeWidth={2} dot={{ r: 2 }} connectNulls />
+          <YAxis width={32} {...chartAxis()} />
+          <Tooltip
+            cursor={{ stroke: CHART_COLORS.axis, strokeDasharray: "3 3" }}
+            content={
+              <ChartTooltip
+                format={(v) => `${typeof v === "number" ? v.toFixed(1) : v} kg`}
+                nameMap={{ e1rm: "e1RM", topSet: "Top set" }}
+              />
+            }
+          />
+          <Line
+            type="monotone"
+            dataKey="topSet"
+            stroke={CHART_COLORS.muted}
+            strokeWidth={1.5}
+            dot={{ r: 2, strokeWidth: 0, fill: CHART_COLORS.muted }}
+            activeDot={{ r: 4, strokeWidth: 2, stroke: "var(--chart-tooltip-bg)", fill: CHART_COLORS.muted }}
+            connectNulls
+          />
+          <Line
+            type="monotone"
+            dataKey="e1rm"
+            stroke={CHART_COLORS.primary}
+            strokeWidth={2.25}
+            dot={{ r: 2, strokeWidth: 0, fill: CHART_COLORS.primary }}
+            activeDot={{ r: 4, strokeWidth: 2, stroke: "var(--chart-tooltip-bg)", fill: CHART_COLORS.primary }}
+            connectNulls
+          />
         </LineChart>
       </ResponsiveContainer>
     </div>
