@@ -139,16 +139,13 @@ function WeightRow({ initial }: { initial: number | null }) {
 
 function ProteinRow({ initialProtein, initialKcal }: { initialProtein: number; initialKcal: number | null }) {
   const router = useRouter();
-  const [protein, setProtein] = useState<number>(initialProtein);
-  const [kcal, setKcal] = useState<string>(initialKcal != null ? String(initialKcal) : "");
-  const [showKcal, setShowKcal] = useState(initialKcal != null);
   const [savedProtein, setSavedProtein] = useState<number>(initialProtein);
   const [savedKcal, setSavedKcal] = useState<number | null>(initialKcal);
+  const [proteinAdd, setProteinAdd] = useState<string>("");
+  const [kcalAdd, setKcalAdd] = useState<string>("");
+  const [showKcal, setShowKcal] = useState(initialKcal != null);
   const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [, start] = useTransition();
-
-  const kcalParsed = useMemo(() => (kcal === "" ? null : Number(kcal)), [kcal]);
-  const dirty = protein !== savedProtein || kcalParsed !== savedKcal;
 
   const save = useCallback(
     async (proteinVal: number, kcalVal: number | null) => {
@@ -171,11 +168,26 @@ function ProteinRow({ initialProtein, initialKcal }: { initialProtein: number; i
     [router],
   );
 
-  function adjust(delta: number) {
-    const next = Math.max(0, Math.min(1000, protein + delta));
-    setProtein(next);
-    save(next, kcalParsed);
+  function addProtein(delta: number) {
+    const next = Math.max(0, Math.min(1000, savedProtein + delta));
+    if (next === savedProtein) return;
+    save(next, savedKcal);
   }
+
+  function logEntry() {
+    const pDelta = proteinAdd === "" ? 0 : Number(proteinAdd);
+    const kDelta = kcalAdd === "" ? 0 : Number(kcalAdd);
+    if (!Number.isFinite(pDelta) || !Number.isFinite(kDelta)) return;
+    if (pDelta === 0 && kDelta === 0) return;
+    const nextProtein = Math.max(0, Math.min(1000, savedProtein + pDelta));
+    const nextKcal =
+      kDelta === 0 ? savedKcal : Math.max(0, Math.min(10000, (savedKcal ?? 0) + kDelta));
+    setProteinAdd("");
+    setKcalAdd("");
+    save(nextProtein, nextKcal);
+  }
+
+  const hasInput = proteinAdd !== "" || kcalAdd !== "";
 
   return (
     <Section>
@@ -190,35 +202,61 @@ function ProteinRow({ initialProtein, initialKcal }: { initialProtein: number; i
         }
       />
       <div className="mt-2 flex items-center gap-2">
-        <Button variant="outline" size="icon" onClick={() => adjust(-10)} aria-label="-10g">−10</Button>
         <Input
           type="number"
           inputMode="numeric"
-          value={protein}
-          onChange={(e) => setProtein(Math.max(0, Math.min(1000, Number(e.target.value) || 0)))}
+          placeholder="+ grams"
+          value={proteinAdd}
+          onChange={(e) => setProteinAdd(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === "Enter") save(protein, kcalParsed);
+            if (e.key === "Enter") logEntry();
           }}
           className="flex-1 text-center text-lg tabular-nums"
         />
-        <Button variant="outline" size="icon" onClick={() => adjust(10)} aria-label="+10g">+10</Button>
+        <Button onClick={logEntry} disabled={!hasInput || status === "saving"}>
+          Add
+        </Button>
+      </div>
+      <div className="mt-2 flex flex-wrap gap-1.5">
+        {[10, 20, 30, 40].map((g) => (
+          <button
+            key={g}
+            type="button"
+            onClick={() => addProtein(g)}
+            className="rounded-full border border-zinc-300 px-3 py-1 text-xs text-zinc-600 transition hover:border-zinc-900 hover:text-zinc-900 dark:border-zinc-700 dark:text-zinc-300 dark:hover:border-white dark:hover:text-white"
+          >
+            +{g}g
+          </button>
+        ))}
+        {savedProtein > 0 && (
+          <button
+            type="button"
+            onClick={() => addProtein(-10)}
+            className="rounded-full border border-zinc-300 px-3 py-1 text-xs text-zinc-500 transition hover:border-red-500 hover:text-red-600 dark:border-zinc-700 dark:text-zinc-400"
+          >
+            −10g
+          </button>
+        )}
       </div>
       {showKcal ? (
         <div className="mt-2 flex items-center gap-2">
           <Input
             type="number"
             inputMode="numeric"
-            value={kcal}
-            onChange={(e) => setKcal(e.target.value)}
-            placeholder="kcal estimate"
+            value={kcalAdd}
+            onChange={(e) => setKcalAdd(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") logEntry();
+            }}
+            placeholder={savedKcal != null ? `+ kcal (${savedKcal} so far)` : "+ kcal"}
             className="flex-1 text-center text-sm tabular-nums"
           />
           <button
             type="button"
             onClick={() => {
-              setKcal("");
+              setKcalAdd("");
               setShowKcal(false);
-              save(protein, null);
+              if (savedKcal != null) save(savedProtein, null);
             }}
             className="text-xs text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
           >
@@ -234,13 +272,6 @@ function ProteinRow({ initialProtein, initialKcal }: { initialProtein: number; i
           + add kcal estimate
         </button>
       )}
-      <Button
-        onClick={() => save(protein, kcalParsed)}
-        disabled={!dirty || status === "saving"}
-        className="mt-3 w-full"
-      >
-        {dirty ? "Log" : "Logged ✓"}
-      </Button>
     </Section>
   );
 }

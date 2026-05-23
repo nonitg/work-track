@@ -103,6 +103,20 @@ body {
   display: none;
 }
 
+/* Suppress browser-default highlight when interacting with charts */
+.recharts-wrapper,
+.recharts-surface,
+.recharts-wrapper * {
+  -webkit-tap-highlight-color: transparent;
+  outline: none !important;
+}
+.recharts-wrapper:focus,
+.recharts-wrapper:focus-visible,
+.recharts-surface:focus,
+.recharts-surface:focus-visible {
+  outline: none !important;
+}
+
 @supports (padding: max(0px)) {
   .safe-bottom {
     padding-bottom: max(env(safe-area-inset-bottom), 0.5rem);

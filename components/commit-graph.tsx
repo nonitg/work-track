@@ -12,35 +12,76 @@ const LEVEL_CLASS: Record<number, string> = {
 };
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const WINDOW_WEEKS = 18; // ~4 months — fits comfortably on mobile without scrolling
+const STEP_WEEKS = 9;
 
 type Week = (CommitDay | null)[]; // 7 entries, indexed by day-of-week (0=Sun)
 
 export function CommitGraph({ data }: { data: CommitDay[] }) {
   const { weeks, monthLabels } = useMemo(() => buildWeeks(data), [data]);
+  const totalWeeks = weeks.length;
+  const [endIdx, setEndIdx] = useState<number>(totalWeeks); // exclusive
+  const startIdx = Math.max(0, endIdx - WINDOW_WEEKS);
+  const viewWeeks = weeks.slice(startIdx, endIdx);
+  const viewMonths = monthLabels.slice(startIdx, endIdx);
   const [hover, setHover] = useState<CommitDay | null>(null);
 
+  const canPrev = startIdx > 0;
+  const canNext = endIdx < totalWeeks;
+  const rangeLabel = useMemo(() => {
+    const firstDay = viewWeeks[0]?.find((d) => d != null);
+    const lastWeek = viewWeeks[viewWeeks.length - 1];
+    const lastDay = lastWeek ? [...lastWeek].reverse().find((d) => d != null) : null;
+    if (!firstDay || !lastDay) return "";
+    return `${shortDate(firstDay.date)} – ${shortDate(lastDay.date)}`;
+  }, [viewWeeks]);
+
   return (
-    <div className="-mx-1 overflow-x-auto px-1 pb-1">
-      <div className="flex w-fit gap-2">
-        <div className="mt-5 flex flex-col gap-[3px] pr-1 text-[10px] text-zinc-400">
-          <span className="h-[11px]" />
-          <span className="h-[11px]">Mon</span>
-          <span className="h-[11px]" />
-          <span className="h-[11px]">Wed</span>
-          <span className="h-[11px]" />
-          <span className="h-[11px]">Fri</span>
-          <span className="h-[11px]" />
+    <div className="select-none">
+      <div className="mb-2 flex items-center justify-between text-xs text-zinc-500">
+        <button
+          type="button"
+          onClick={() => setEndIdx((e) => Math.max(WINDOW_WEEKS, e - STEP_WEEKS))}
+          disabled={!canPrev}
+          className="rounded-md px-2 py-1 text-zinc-500 transition hover:bg-zinc-100 disabled:opacity-30 dark:hover:bg-zinc-800"
+          aria-label="Earlier"
+        >
+          ‹
+        </button>
+        <span className="tabular-nums">{rangeLabel}</span>
+        <button
+          type="button"
+          onClick={() => setEndIdx((e) => Math.min(totalWeeks, e + STEP_WEEKS))}
+          disabled={!canNext}
+          className="rounded-md px-2 py-1 text-zinc-500 transition hover:bg-zinc-100 disabled:opacity-30 dark:hover:bg-zinc-800"
+          aria-label="Later"
+        >
+          ›
+        </button>
+      </div>
+
+      <div className="flex gap-2">
+        <div className="mt-5 flex flex-col justify-between pr-1 text-[10px] leading-none text-zinc-400">
+          <span>Mon</span>
+          <span>Wed</span>
+          <span>Fri</span>
         </div>
-        <div>
-          <div className="flex gap-[3px] pl-px text-[10px] text-zinc-400">
-            {monthLabels.map((m, i) => (
-              <span key={i} className="w-[11px] shrink-0 text-left">
+        <div className="min-w-0 flex-1">
+          <div
+            className="grid gap-[3px] pl-px text-[10px] text-zinc-400"
+            style={{ gridTemplateColumns: `repeat(${viewWeeks.length}, minmax(0, 1fr))` }}
+          >
+            {viewMonths.map((m, i) => (
+              <span key={i} className="truncate text-left">
                 {m ?? ""}
               </span>
             ))}
           </div>
-          <div className="mt-1 flex gap-[3px]">
-            {weeks.map((week, wi) => (
+          <div
+            className="mt-1 grid gap-[3px]"
+            style={{ gridTemplateColumns: `repeat(${viewWeeks.length}, minmax(0, 1fr))` }}
+          >
+            {viewWeeks.map((week, wi) => (
               <div key={wi} className="flex flex-col gap-[3px]">
                 {week.map((d, di) => (
                   <button
@@ -52,7 +93,7 @@ export function CommitGraph({ data }: { data: CommitDay[] }) {
                     onBlur={() => setHover(null)}
                     aria-label={d ? cellLabel(d) : ""}
                     className={cn(
-                      "h-[11px] w-[11px] rounded-[2px]",
+                      "aspect-square w-full rounded-[2px]",
                       d ? LEVEL_CLASS[d.level] : "bg-transparent",
                     )}
                     disabled={!d}
@@ -78,6 +119,11 @@ export function CommitGraph({ data }: { data: CommitDay[] }) {
       </div>
     </div>
   );
+}
+
+function shortDate(iso: string) {
+  const d = new Date(`${iso}T00:00:00`);
+  return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
 function cellLabel(d: CommitDay) {
