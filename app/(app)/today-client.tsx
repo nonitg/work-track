@@ -17,6 +17,7 @@ const CARDIO_SHORT: Record<string, string> = {
 type CardioRow = { id: number; type: string; duration_min: number; notes: string | null };
 
 export function TodayClient(props: {
+  date: string;
   weight: number | null;
   protein: number;
   kcal: number | null;
@@ -26,10 +27,10 @@ export function TodayClient(props: {
 }) {
   return (
     <div className="space-y-4">
-      <WeightRow initial={props.weight} />
-      <ProteinRow initialProtein={props.protein} initialKcal={props.kcal} />
-      <CardioRowGroup initial={props.cardio} />
-      <MobilityRow initial={props.mobility} streak={props.streak} />
+      <WeightRow date={props.date} initial={props.weight} />
+      <ProteinRow date={props.date} initialProtein={props.protein} initialKcal={props.kcal} />
+      <CardioRowGroup date={props.date} initial={props.cardio} />
+      <MobilityRow date={props.date} initial={props.mobility} streak={props.streak} />
     </div>
   );
 }
@@ -73,7 +74,7 @@ function Section({ children }: { children: React.ReactNode }) {
   );
 }
 
-function WeightRow({ initial }: { initial: number | null }) {
+function WeightRow({ date, initial }: { date: string; initial: number | null }) {
   const router = useRouter();
   const [value, setValue] = useState<string>(initial != null ? String(initial) : "");
   const [saved, setSaved] = useState<boolean>(initial != null);
@@ -91,7 +92,7 @@ function WeightRow({ initial }: { initial: number | null }) {
     const res = await fetch("/api/weight", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ weight_kg: n }),
+      body: JSON.stringify({ date, weight_kg: n }),
     });
     if (!res.ok) {
       setStatus("error");
@@ -137,7 +138,7 @@ function WeightRow({ initial }: { initial: number | null }) {
   );
 }
 
-function ProteinRow({ initialProtein, initialKcal }: { initialProtein: number; initialKcal: number | null }) {
+function ProteinRow({ date, initialProtein, initialKcal }: { date: string; initialProtein: number; initialKcal: number | null }) {
   const router = useRouter();
   const [savedProtein, setSavedProtein] = useState<number>(initialProtein);
   const [savedKcal, setSavedKcal] = useState<number | null>(initialKcal);
@@ -153,7 +154,7 @@ function ProteinRow({ initialProtein, initialKcal }: { initialProtein: number; i
       const res = await fetch("/api/nutrition", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ protein_g: proteinVal, kcal_estimate: kcalVal }),
+        body: JSON.stringify({ date, protein_g: proteinVal, kcal_estimate: kcalVal }),
       });
       if (!res.ok) {
         setStatus("error");
@@ -165,7 +166,7 @@ function ProteinRow({ initialProtein, initialKcal }: { initialProtein: number; i
       setTimeout(() => setStatus((s) => (s === "saved" ? "idle" : s)), 1500);
       start(() => router.refresh());
     },
-    [router],
+    [date, router],
   );
 
   function addProtein(delta: number) {
@@ -276,7 +277,7 @@ function ProteinRow({ initialProtein, initialKcal }: { initialProtein: number; i
   );
 }
 
-function CardioRowGroup({ initial }: { initial: CardioRow[] }) {
+function CardioRowGroup({ date, initial }: { date: string; initial: CardioRow[] }) {
   const router = useRouter();
   const [rows, setRows] = useState<CardioRow[]>(initial);
   const [type, setType] = useState<string>(CARDIO_TYPES[0]);
@@ -295,7 +296,7 @@ function CardioRowGroup({ initial }: { initial: CardioRow[] }) {
     const res = await fetch("/api/cardio", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ type, duration_min: n }),
+      body: JSON.stringify({ date, type, duration_min: n }),
     });
     if (!res.ok) {
       setRows((r) => r.filter((x) => x.id !== tempId));
@@ -380,9 +381,11 @@ function CardioRowGroup({ initial }: { initial: CardioRow[] }) {
 }
 
 function MobilityRow({
+  date,
   initial,
   streak,
 }: {
+  date: string;
   initial: { daily_mobility_done: boolean; knee_to_wall_cm_left: number | null; knee_to_wall_cm_right: number | null };
   streak: number;
 }) {
@@ -408,12 +411,12 @@ function MobilityRow({
       const res = await fetch("/api/mobility", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ date, ...payload }),
       });
       if (!res.ok) throw new Error("save failed");
       start(() => router.refresh());
     },
-    [router],
+    [date, router],
   );
 
   const combined = useMemo(
