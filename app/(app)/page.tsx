@@ -1,51 +1,87 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { Button } from "@/components/ui/button";
-import {
-  getMobilityStreak,
-  getTodayCardio,
-  getTodayMobility,
-  getTodayNutrition,
-  getTodayWeight,
-} from "@/lib/queries";
-import { fmtDate, todayISO } from "@/lib/utils";
+import { getMobilityStreak } from "@/lib/queries";
+import { supabase } from "@/lib/supabase";
+import { todayISO } from "@/lib/utils";
+import { DateSelector } from "./date-selector";
 import { TodayClient } from "./today-client";
 
 export const dynamic = "force-dynamic";
 
-export default function TodayPage() {
+type SearchParams = Promise<{ date?: string }>;
+
+function isIsoDate(value: string) {
+  if (value.length !== 10) return false;
+  const parts = value.split("-");
+  return parts.length === 3 && parts.every((part) => /^\d+$/.test(part));
+}
+
+function cleanDashboardDate(date: string | undefined, today: string) {
+  if (!date || !isIsoDate(date)) return today;
+  return date > today ? today : date;
+}
+
+export default async function TodayPage({ searchParams }: { searchParams: SearchParams }) {
+  const today = todayISO();
+  const params = await searchParams;
+  const selectedDate = cleanDashboardDate(params.date, today);
+  const isToday = selectedDate === today;
+  const workoutHref = isToday ? "/workout/new" : `/workout/new?date=${selectedDate}`;
+
   return (
     <div className="space-y-5">
-      <header className="flex items-baseline justify-between">
+      <header className="flex items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Today</h1>
-          <p className="text-sm text-zinc-500">{fmtDate(todayISO())}</p>
+          <h1 className="text-2xl font-semibold tracking-tight">{isToday ? "Today" : "History"}</h1>
+          <DateSelector date={selectedDate} today={today} />
+          {!isToday && (
+            <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">Editing selected date</p>
+          )}
         </div>
-        <Link href="/workout/new">
+        <Link href={workoutHref}>
           <Button size="sm">Start workout</Button>
         </Link>
       </header>
-      <Suspense fallback={<TodaySkeleton />}>
-        <TodayLoader />
+      <Suspense key={selectedDate} fallback={<TodaySkeleton />}>
+        <TodayLoader date={selectedDate} isToday={isToday} />
       </Suspense>
     </div>
   );
 }
 
-async function TodayLoader() {
-  const [weight, nutrition, cardio, mobility, streak] = await Promise.all([
-    getTodayWeight(),
-    getTodayNutrition(),
-    getTodayCardio(),
-    getTodayMobility(),
-    getMobilityStreak(),
+async function TodayLoader({ date, isToday }: { date: string; isToday: boolean }) {
+  const [weightRes, nutritionRes, cardioRes, mobilityRes, streak] = await Promise.all([
+    supabase.from("body_weight").select("weight_kg").eq("date", date).maybeSingle(),
+    supabase.from("nutrition_log").select("protein_g,kcal_estimate").eq("date", date).maybeSingle(),
+    supabase
+      .from("cardio_log")
+      .select("id,type,duration_min,notes")
+      .eq("date", date)
+      .order("id", { ascending: true }),
+    supabase
+      .from("mobility_log")
+      .select("daily_mobility_done,knee_to_wall_cm_left,knee_to_wall_cm_right")
+      .eq("date", date)
+      .maybeSingle(),
+    isToday ? getMobilityStreak() : Promise.resolve(0),
   ]);
+
+  const nutrition = nutritionRes.data ?? { protein_g: 0, kcal_estimate: null };
+  const mobility = mobilityRes.data ?? {
+    daily_mobility_done: false,
+    knee_to_wall_cm_left: null,
+    knee_to_wall_cm_right: null,
+  };
+
   return (
     <TodayClient
-      weight={weight}
+      key={date}
+      date={date}
+      weight={weightRes.data?.weight_kg ? Number(weightRes.data.weight_kg) : null}
       protein={nutrition.protein_g ?? 0}
       kcal={nutrition.kcal_estimate ?? null}
-      cardio={cardio.map((c) => ({
+      cardio={(cardioRes.data ?? []).map((c) => ({
         id: c.id,
         type: c.type,
         duration_min: c.duration_min,
