@@ -11,7 +11,7 @@ export function ExerciseChart({ data }: { data: ExercisePoint[] }) {
   return (
     <div className="h-64 w-full">
       <ResponsiveContainer>
-        <LineChart data={data} margin={{ top: 8, right: 12, left: -16, bottom: 0 }}>
+        <LineChart data={data} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
           {chartGrid()}
           <XAxis
             dataKey="date"
@@ -20,7 +20,7 @@ export function ExerciseChart({ data }: { data: ExercisePoint[] }) {
             minTickGap={20}
             {...chartAxis()}
           />
-          <YAxis width={32} {...chartAxis()} />
+          <YAxis width={36} {...chartAxis()} />
           <Tooltip
             cursor={{ stroke: CHART_COLORS.axis, strokeDasharray: "3 3" }}
             content={

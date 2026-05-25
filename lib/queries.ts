@@ -23,6 +23,7 @@ export async function getWeightSeries(days = 30) {
     series.push({ date: d, weight: byDate.has(d) ? byDate.get(d)! : null, avg7: null });
   }
   for (let i = 0; i < series.length; i++) {
+    if (series[i].weight == null) continue;
     const window: number[] = [];
     for (let j = Math.max(0, i - 6); j <= i; j++) {
       const w = series[j].weight;
@@ -42,10 +43,10 @@ export async function getProteinSeries(days = 14) {
     .order("date", { ascending: true });
   if (error) throw error;
   const byDate = new Map((data ?? []).map((r) => [r.date, r.protein_g]));
-  const out: { date: string; protein: number }[] = [];
+  const out: { date: string; protein: number | null }[] = [];
   for (let i = days - 1; i >= 0; i--) {
     const d = isoDaysAgo(i);
-    out.push({ date: d, protein: byDate.get(d) ?? 0 });
+    out.push({ date: d, protein: byDate.has(d) ? Number(byDate.get(d) ?? 0) : null });
   }
   return out;
 }

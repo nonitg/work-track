@@ -47,9 +47,10 @@ async function StatsBody() {
   const mobilityDone28 = mobility.filter((m) => m.daily_mobility_done).length;
   const activeDays = commit.filter((d) => d.level > 0).length;
   const mobilityDoneYear = commit.filter((d) => d.mobility).length;
-  const proteinHits14 = proteinSeries.filter((p) => p.protein >= 100).length;
-  const proteinAvg14 = proteinSeries.length
-    ? Math.round(proteinSeries.reduce((a, p) => a + p.protein, 0) / proteinSeries.length)
+  const proteinLogged = proteinSeries.filter((p): p is { date: string; protein: number } => p.protein != null);
+  const proteinHits14 = proteinLogged.filter((p) => p.protein >= 100).length;
+  const proteinAvg14 = proteinLogged.length
+    ? Math.round(proteinLogged.reduce((a, p) => a + p.protein, 0) / proteinLogged.length)
     : 0;
   const latestWeight = [...weightSeries].reverse().find((w) => w.weight != null)?.weight ?? null;
   const firstWeight = weightSeries.find((w) => w.weight != null)?.weight ?? null;
@@ -80,7 +81,7 @@ async function StatsBody() {
         <Metric
           label="Protein hits"
           value={`${proteinHits14}/14`}
-          sub={`avg ${proteinAvg14}g`}
+          sub={proteinLogged.length ? `avg ${proteinAvg14}g · ${proteinLogged.length}d logged` : "no logs yet"}
           accent={proteinHits14 >= 10 ? "good" : "muted"}
         />
         <Metric
@@ -122,7 +123,11 @@ async function StatsBody() {
       <Card>
         <SectionHead
           title="Protein"
-          hint={`14d · target 100g · ${proteinHits14}/14 hit · avg ${proteinAvg14}g`}
+          hint={
+            proteinLogged.length
+              ? `14d · target 100g · ${proteinHits14}/${proteinLogged.length} hit · avg ${proteinAvg14}g`
+              : "14d · target 100g · nothing logged"
+          }
         />
         <div className="mt-4">
           <ProteinChart data={proteinSeries} />
