@@ -1,6 +1,9 @@
 @import "tailwindcss";
 
 :root {
+  /* Tells the browser to theme native controls (input text, caret) for light mode.
+     Without this, inputs in OS dark mode render typed text in an invisible color. */
+  color-scheme: light;
   --background: #fafafa;
   --foreground: #18181b;
   --muted: #71717a;
@@ -32,6 +35,7 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
+    color-scheme: dark;
     --background: #09090b;
     --foreground: #fafafa;
     --muted: #a1a1aa;
@@ -63,6 +67,20 @@ body {
 body {
   font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
+}
+
+/* Remove native number-input spinners. They steal horizontal space — in the
+   narrow Sets stepper the digit got clipped and the field looked blank — and
+   they're redundant with our own −/+ steppers. */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
 }
 
 /* Custom scrollbars — thin, subtle, theme-aware */

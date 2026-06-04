@@ -339,10 +339,10 @@ function ExerciseCard({
             />
             {!isBodyweight && (
               <NumberCell
-                label="Weight (kg)"
+                label="Weight (lbs)"
                 value={weight}
                 onChange={changeWeight}
-                placeholder={prevWeight != null ? String(prevWeight) : "kg"}
+                placeholder={prevWeight != null ? String(prevWeight) : "lbs"}
                 step="0.5"
               />
             )}
@@ -354,7 +354,7 @@ function ExerciseCard({
               className="mt-2 w-full rounded-lg border border-dashed border-zinc-300 py-2 text-xs text-zinc-500 hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800/50"
             >
               {previous.length
-                ? `Same as last → ${prevSetCount} × ${prevReps ?? "—"}${isBodyweight ? "" : ` @ ${prevWeight ?? "—"} kg`}`
+                ? `Same as last → ${prevSetCount} × ${prevReps ?? "—"}${isBodyweight ? "" : ` @ ${prevWeight ?? "—"} lbs`}`
                 : "Tap to log"}
             </button>
           )}
@@ -403,7 +403,7 @@ function Stepper({
         <button
           type="button"
           onClick={() => onChange(Math.max(min, value - 1))}
-          className="h-11 w-9 rounded-lg border border-zinc-300 text-lg leading-none hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
+          className="h-11 w-8 shrink-0 rounded-lg border border-zinc-300 text-lg leading-none hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
           aria-label={`Decrease ${label}`}
         >
           −
@@ -416,12 +416,12 @@ function Stepper({
             const n = Number(e.target.value);
             onChange(Number.isFinite(n) ? Math.max(min, Math.min(max, n)) : min);
           }}
-          className="flex-1 text-center text-lg tabular-nums"
+          className="w-0 flex-1 px-1 text-center text-lg tabular-nums"
         />
         <button
           type="button"
           onClick={() => onChange(Math.min(max, value + 1))}
-          className="h-11 w-9 rounded-lg border border-zinc-300 text-lg leading-none hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
+          className="h-11 w-8 shrink-0 rounded-lg border border-zinc-300 text-lg leading-none hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
           aria-label={`Increase ${label}`}
         >
           +
@@ -559,7 +559,7 @@ function VariedSets({
               <>
                 <SetCellInput
                   value={s.weight_kg}
-                  placeholder="kg"
+                  placeholder="lbs"
                   step="0.5"
                   onChange={(v) => updateSet(s.id, { weight_kg: v })}
                 />

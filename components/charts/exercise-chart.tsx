@@ -25,7 +25,7 @@ export function ExerciseChart({ data }: { data: ExercisePoint[] }) {
             cursor={{ stroke: CHART_COLORS.axis, strokeDasharray: "3 3" }}
             content={
               <ChartTooltip
-                format={(v) => `${typeof v === "number" ? v.toFixed(1) : v} kg`}
+                format={(v) => `${typeof v === "number" ? v.toFixed(1) : v} lbs`}
                 nameMap={{ e1rm: "e1RM", topSet: "Top set" }}
               />
             }

@@ -47,7 +47,7 @@ export default async function ExercisePage({ params }: { params: Promise<{ id: s
       </div>
 
       <Card>
-        <CardTitle>Progression (kg)</CardTitle>
+        <CardTitle>Progression (lbs)</CardTitle>
         <div className="mt-4">
           <ExerciseChart data={history} />
         </div>

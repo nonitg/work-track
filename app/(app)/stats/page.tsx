@@ -146,7 +146,7 @@ async function StatsBody() {
                 <span className="text-sm font-medium">{l.name}</span>
                 <span className="flex items-center gap-2 text-sm tabular-nums">
                   <span className="text-zinc-600 dark:text-zinc-300">
-                    {l.latestE1rm ? `${l.latestE1rm.toFixed(1)} kg` : "—"}
+                    {l.latestE1rm ? `${l.latestE1rm.toFixed(1)} lbs` : "—"}
                   </span>
                   {l.delta != null && (
                     <span
