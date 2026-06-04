@@ -497,6 +497,8 @@ function VariedSets({
   async function updateSet(setId: number, patch: Partial<Pick<LoggedSet, "weight_kg" | "reps">>) {
     const next = rows.map((r) => (r.id === setId ? { ...r, ...patch } : r));
     onReplace(next);
+    // Negative IDs are optimistic placeholders — skip PATCH until the real ID arrives via refresh
+    if (setId < 0) return;
     await fetch(`/api/sets/${setId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -519,7 +521,7 @@ function VariedSets({
       reps: last?.reps ?? null,
     };
     onReplace([...rows, optimistic]);
-    await fetch("/api/sets", {
+    const res = await fetch("/api/sets", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -530,11 +532,19 @@ function VariedSets({
         reps: optimistic.reps,
       }),
     });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.id) {
+        // Replace the temp ID with the real server ID so edits/deletes work immediately
+        onReplace([...rows, { ...optimistic, id: data.id }]);
+      }
+    }
     start(() => router.refresh());
   }
 
   async function deleteSet(setId: number) {
     onReplace(rows.filter((r) => r.id !== setId));
+    if (setId < 0) return; // optimistic placeholder, not yet saved
     await fetch(`/api/sets/${setId}`, { method: "DELETE" });
     start(() => router.refresh());
   }
@@ -684,6 +694,21 @@ function SetCellInput({
   onChange: (v: number | null) => void;
 }) {
   const [local, setLocal] = useState<string>(value != null ? String(value) : "");
+  const [focused, setFocused] = useState(false);
+  const prevValueRef = useRef(value);
+
+  // Sync external value changes (after server refresh) only when not actively editing
+  if (!focused && prevValueRef.current !== value) {
+    prevValueRef.current = value;
+    const next = value != null ? String(value) : "";
+    if (next !== local) setLocal(next);
+  }
+
+  function commit() {
+    const n = local === "" ? null : Number(local);
+    onChange(Number.isFinite(n as number) || n === null ? n : null);
+  }
+
   return (
     <Input
       type="number"
@@ -692,9 +717,13 @@ function SetCellInput({
       placeholder={placeholder}
       value={local}
       onChange={(e) => setLocal(e.target.value)}
+      onFocus={() => setFocused(true)}
       onBlur={() => {
-        const n = local === "" ? null : Number(local);
-        onChange(Number.isFinite(n as number) || n === null ? n : null);
+        setFocused(false);
+        commit();
+      }}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") e.currentTarget.blur();
       }}
       className="h-10 flex-1 text-center"
     />
