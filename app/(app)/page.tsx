@@ -1,11 +1,12 @@
-import Link from "next/link";
 import { Suspense } from "react";
-import { Button } from "@/components/ui/button";
-import { getMobilityStreak } from "@/lib/queries";
+import { getMobilityStreak, getWorkoutForDate } from "@/lib/queries";
+import { scheduleForDate } from "@/lib/schedule";
 import { supabase } from "@/lib/supabase";
 import { todayISO } from "@/lib/utils";
+import { CleanupOnLoad } from "./cleanup-on-load";
 import { DateSelector } from "./date-selector";
 import { TodayClient } from "./today-client";
+import { TodayWorkoutCard } from "./today-workout-card";
 
 export const dynamic = "force-dynamic";
 
@@ -27,21 +28,16 @@ export default async function TodayPage({ searchParams }: { searchParams: Search
   const params = await searchParams;
   const selectedDate = cleanDashboardDate(params.date, today);
   const isToday = selectedDate === today;
-  const workoutHref = isToday ? "/workout/new" : `/workout/new?date=${selectedDate}`;
 
   return (
     <div className="space-y-5">
-      <header className="flex items-start justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">{isToday ? "Today" : "History"}</h1>
-          <DateSelector date={selectedDate} today={today} />
-          {!isToday && (
-            <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">Editing selected date</p>
-          )}
-        </div>
-        <Link href={workoutHref}>
-          <Button size="sm">Start workout</Button>
-        </Link>
+      <CleanupOnLoad />
+      <header>
+        <h1 className="text-2xl font-semibold tracking-tight">{isToday ? "Today" : "History"}</h1>
+        <DateSelector date={selectedDate} today={today} />
+        {!isToday && (
+          <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">Editing selected date</p>
+        )}
       </header>
       <Suspense key={selectedDate} fallback={<TodaySkeleton />}>
         <TodayLoader date={selectedDate} isToday={isToday} />
@@ -51,7 +47,7 @@ export default async function TodayPage({ searchParams }: { searchParams: Search
 }
 
 async function TodayLoader({ date, isToday }: { date: string; isToday: boolean }) {
-  const [weightRes, nutritionRes, cardioRes, mobilityRes, streak] = await Promise.all([
+  const [weightRes, nutritionRes, cardioRes, mobilityRes, streak, workout] = await Promise.all([
     supabase.from("body_weight").select("weight_kg").eq("date", date).maybeSingle(),
     supabase.from("nutrition_log").select("protein_g,kcal_estimate").eq("date", date).maybeSingle(),
     supabase
@@ -65,6 +61,7 @@ async function TodayLoader({ date, isToday }: { date: string; isToday: boolean }
       .eq("date", date)
       .maybeSingle(),
     isToday ? getMobilityStreak() : Promise.resolve(0),
+    getWorkoutForDate(date),
   ]);
 
   const nutrition = nutritionRes.data ?? { protein_g: 0, kcal_estimate: null };
@@ -73,9 +70,22 @@ async function TodayLoader({ date, isToday }: { date: string; isToday: boolean }
     knee_to_wall_cm_left: null,
     knee_to_wall_cm_right: null,
   };
+  const scheduled = scheduleForDate(date);
 
   return (
-    <TodayClient
+    <div className="space-y-4">
+      <TodayWorkoutCard
+        date={date}
+        isToday={isToday}
+        scheduled={{
+          day: scheduled.day,
+          plan: scheduled.plan,
+          templateId: scheduled.templateId,
+          kind: scheduled.kind,
+        }}
+        existing={workout}
+      />
+      <TodayClient
       key={date}
       date={date}
       weight={weightRes.data?.weight_kg ? Number(weightRes.data.weight_kg) : null}
@@ -96,6 +106,7 @@ async function TodayLoader({ date, isToday }: { date: string; isToday: boolean }
       }}
       streak={streak}
     />
+    </div>
   );
 }
 
