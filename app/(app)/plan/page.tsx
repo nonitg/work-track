@@ -2,18 +2,9 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { Card, CardTitle } from "@/components/ui/card";
 import { getTemplates, getTemplateWithItems } from "@/lib/queries";
+import { WEEKLY_SCHEDULE } from "@/lib/schedule";
 
 export const dynamic = "force-dynamic";
-
-const WEEKLY_SCHEDULE = [
-  { day: "Monday", plan: "Lower A: squat strength", templateId: 1 },
-  { day: "Tuesday", plan: "Upper A: bench/row strength", templateId: 2 },
-  { day: "Wednesday", plan: "Hiking prep / cardio", templateId: null },
-  { day: "Thursday", plan: "Lower B: hinge + unilateral legs + knees", templateId: 3 },
-  { day: "Friday", plan: "Upper B: shoulders/back/arms/carries", templateId: 4 },
-  { day: "Saturday", plan: "Optional long walk, easy hike, sport, or rest", templateId: null },
-  { day: "Sunday", plan: "Rest + calf mobility", templateId: null },
-];
 
 const CARDIO_OPTIONS = [
   { name: "Incline treadmill walk", time: "30–60 min" },

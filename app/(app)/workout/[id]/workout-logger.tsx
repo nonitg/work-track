@@ -137,6 +137,15 @@ export function WorkoutLogger({
     setSets((all) => [...all.filter((s) => s.exercise_id !== exerciseId), ...rows]);
   }
 
+  // Don't leave an empty workout behind: if nothing was logged, discard the
+  // record on the way out so it never clutters history.
+  async function finish() {
+    if (sets.length === 0) {
+      await fetch(`/api/workouts/${workoutId}`, { method: "DELETE" });
+    }
+    start(() => router.push("/history"));
+  }
+
   return (
     <div className="space-y-4">
       <header className="flex items-baseline justify-between">
@@ -144,7 +153,7 @@ export function WorkoutLogger({
           <h1 className="text-2xl font-semibold tracking-tight">{templateName ?? "Workout"}</h1>
           <p className="text-sm text-zinc-500">{fmtDate(date)}</p>
         </div>
-        <Button onClick={() => start(() => router.push("/history"))} size="sm">
+        <Button onClick={finish} size="sm">
           Finish
         </Button>
       </header>

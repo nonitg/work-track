@@ -157,6 +157,28 @@ export async function getRecentWorkouts(limit = 20) {
   return data ?? [];
 }
 
+export async function getWorkoutForDate(date: string) {
+  const { data, error } = await supabase
+    .from("workouts")
+    .select("id,template:templates(id,name,day_label)")
+    .eq("date", date)
+    .order("id", { ascending: true });
+  if (error) throw error;
+  const w = (data ?? [])[0];
+  if (!w) return null;
+  const { count } = await supabase
+    .from("workout_sets")
+    .select("id", { count: "exact", head: true })
+    .eq("workout_id", w.id);
+  const tpl = Array.isArray(w.template) ? w.template[0] : w.template;
+  return {
+    id: w.id as number,
+    templateName: (tpl?.name ?? null) as string | null,
+    dayLabel: (tpl?.day_label ?? null) as string | null,
+    setCount: count ?? 0,
+  };
+}
+
 export async function getWorkout(id: number) {
   const [w, sets] = await Promise.all([
     supabase
