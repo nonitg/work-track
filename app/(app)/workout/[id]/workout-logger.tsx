@@ -243,10 +243,16 @@ function ExerciseCard({
       ? null
       : prevWeight;
 
+  // Only prefill the inputs with values that were actually logged this session.
+  // When the exercise is still unlogged, leave the fields empty and surface last
+  // session's numbers as placeholder hints (plus the "Same as last" shortcut
+  // below) — so a filled field always means "logged", never just "suggested".
   const [setCount, setSetCount] = useState<number>(uniformSets);
-  const [reps, setReps] = useState<string>(uniformReps != null ? String(uniformReps) : "");
+  const [reps, setReps] = useState<string>(
+    hasLogged && uniformReps != null ? String(uniformReps) : "",
+  );
   const [weight, setWeight] = useState<string>(
-    uniformWeight != null ? String(uniformWeight) : "",
+    hasLogged && uniformWeight != null ? String(uniformWeight) : "",
   );
 
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -311,6 +317,24 @@ function ExerciseCard({
     scheduleSave(setCount, reps, v);
   }
 
+  // One-tap log of last session's numbers (or the target/typed values when
+  // there's no history). Fills the fields too so the logged values stay visible.
+  function quickLog() {
+    const count = previous.length ? prevSetCount : setCount;
+    const repsVal = previous.length ? prevReps : reps === "" ? targetMid : Number(reps);
+    const weightVal = isBodyweight
+      ? null
+      : previous.length
+        ? prevWeight
+        : weight === ""
+          ? null
+          : Number(weight);
+    setSetCount(count);
+    setReps(repsVal != null ? String(repsVal) : "");
+    setWeight(weightVal != null ? String(weightVal) : "");
+    saveBulk(count, repsVal, weightVal);
+  }
+
   const prevSummary = previous.length
     ? previous
         .map((p) =>
@@ -359,7 +383,7 @@ function ExerciseCard({
           {!hasLogged && (
             <button
               type="button"
-              onClick={() => saveBulk(setCount, reps === "" ? null : Number(reps), weight === "" ? null : Number(weight))}
+              onClick={quickLog}
               className="mt-2 w-full rounded-lg border border-dashed border-zinc-300 py-2 text-xs text-zinc-500 hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800/50"
             >
               {previous.length
