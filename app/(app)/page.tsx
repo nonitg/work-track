@@ -3,6 +3,7 @@ import { getMobilityStreak, getWorkoutForDate } from "@/lib/queries";
 import { scheduleForDate } from "@/lib/schedule";
 import { supabase } from "@/lib/supabase";
 import { todayISO } from "@/lib/utils";
+import { CleanupOnLoad } from "./cleanup-on-load";
 import { DateSelector } from "./date-selector";
 import { TodayClient } from "./today-client";
 import { TodayWorkoutCard } from "./today-workout-card";
@@ -30,6 +31,7 @@ export default async function TodayPage({ searchParams }: { searchParams: Search
 
   return (
     <div className="space-y-5">
+      <CleanupOnLoad />
       <header>
         <h1 className="text-2xl font-semibold tracking-tight">{isToday ? "Today" : "History"}</h1>
         <DateSelector date={selectedDate} today={today} />

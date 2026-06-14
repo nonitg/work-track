@@ -157,6 +157,52 @@ export async function getRecentWorkouts(limit = 20) {
   return data ?? [];
 }
 
+// Collapse the workout table to the "one workout per day" invariant, using
+// only PostgREST operations so it can run from the app server (which holds the
+// Supabase credentials). Idempotent and safe to run repeatedly:
+//   - For each date, keep the workout with the most logged sets (ties broken by
+//     lowest id) and delete the rest, along with their sets.
+//   - Delete leftover empty workouts on past days (today's freshly started but
+//     not-yet-logged workout is preserved).
+export async function cleanupWorkouts() {
+  const [{ data: workouts, error: wErr }, { data: setRows, error: sErr }] = await Promise.all([
+    supabase.from("workouts").select("id,date"),
+    supabase.from("workout_sets").select("workout_id"),
+  ]);
+  if (wErr) throw wErr;
+  if (sErr) throw sErr;
+
+  const setCounts = new Map<number, number>();
+  for (const r of setRows ?? []) {
+    setCounts.set(r.workout_id, (setCounts.get(r.workout_id) ?? 0) + 1);
+  }
+
+  const byDate = new Map<string, { id: number; setCount: number }[]>();
+  for (const w of workouts ?? []) {
+    const list = byDate.get(w.date) ?? [];
+    list.push({ id: w.id, setCount: setCounts.get(w.id) ?? 0 });
+    byDate.set(w.date, list);
+  }
+
+  const today = todayISO();
+  const toDelete: number[] = [];
+  for (const [date, list] of byDate) {
+    list.sort((a, b) => b.setCount - a.setCount || a.id - b.id);
+    for (const loser of list.slice(1)) toDelete.push(loser.id);
+    const keeper = list[0];
+    if (date < today && keeper.setCount === 0) toDelete.push(keeper.id);
+  }
+
+  if (toDelete.length === 0) return { removed: 0, ids: [] as number[] };
+
+  const delSets = await supabase.from("workout_sets").delete().in("workout_id", toDelete);
+  if (delSets.error) throw delSets.error;
+  const delWorkouts = await supabase.from("workouts").delete().in("id", toDelete);
+  if (delWorkouts.error) throw delWorkouts.error;
+
+  return { removed: toDelete.length, ids: toDelete };
+}
+
 export async function getWorkoutForDate(date: string) {
   const { data, error } = await supabase
     .from("workouts")
