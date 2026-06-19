@@ -219,6 +219,7 @@ export async function getWorkoutForDate(date: string) {
   const tpl = Array.isArray(w.template) ? w.template[0] : w.template;
   return {
     id: w.id as number,
+    templateId: (tpl?.id ?? null) as number | null,
     templateName: (tpl?.name ?? null) as string | null,
     dayLabel: (tpl?.day_label ?? null) as string | null,
     setCount: count ?? 0,
