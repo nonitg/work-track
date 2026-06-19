@@ -3,7 +3,15 @@ import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { Button } from "@/components/ui/button";
 
-export function StartWorkoutButton({ templateId, date }: { templateId: number | null; date?: string }) {
+export function StartWorkoutButton({
+  templateId,
+  date,
+  label = "Start",
+}: {
+  templateId: number | null;
+  date?: string;
+  label?: string;
+}) {
   const router = useRouter();
   const [pending, start] = useTransition();
   async function go() {
@@ -17,8 +25,8 @@ export function StartWorkoutButton({ templateId, date }: { templateId: number | 
     start(() => router.push(`/workout/${j.id}`));
   }
   return (
-    <Button onClick={go} disabled={pending}>
-      Start
+    <Button onClick={go} disabled={pending} variant={label === "Switch" ? "outline" : undefined}>
+      {label}
     </Button>
   );
 }
